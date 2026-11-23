@@ -27,7 +27,7 @@ aws ec2 wait nat-gateway-available --nat-gateway-ids "$NAT"
 
 echo "[4/5] route 0.0.0.0/0 -> $NAT"
 # после ручной части в консоли в таблице может висеть Blackhole-маршрут: тогда не create, а replace
-aws ec2 create-route --route-table-id "$PRIVATE_RT" --destination-cidr-block 0.0.0.0/0 --nat-gateway-id "$NAT" >/dev/null \
+aws ec2 create-route --route-table-id "$PRIVATE_RT" --destination-cidr-block 0.0.0.0/0 --nat-gateway-id "$NAT" >/dev/null 2>&1 \
   || aws ec2 replace-route --route-table-id "$PRIVATE_RT" --destination-cidr-block 0.0.0.0/0 --nat-gateway-id "$NAT"
 
 echo "[5/5] ids -> $IDS"
