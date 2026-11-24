@@ -37,15 +37,15 @@
 
 Создание бакета и проверка настроек из CLI.
 
-TODO(shot: lab4-bucket-folders)
+![bucket folders](shots/lab4-bucket-folders.jpg)
 
 Бакет с папками `uploads` и `backups`.
 
-TODO(shot: lab4-object-props)
+![object props](shots/lab4-object-props.jpg)
 
 Свойства `cat.webp`: ключ, тип, `ETag`, `Object URL`.
 
-TODO(shot: lab4-object-url)
+![Object URL без подписи: AccessDenied (терминал, Chrome не снимает XML-страницы S3)](shots/lab4-object-url.jpg)
 
 `Object URL` в браузере: `AccessDenied`.
 
@@ -77,7 +77,7 @@ TODO(shot: lab4-object-url)
 
 `Deny`, `Principal "*"`, `s3:*`, два ARN (бакет и `/*`), условие `Bool aws:SecureTransport = false`.
 
-TODO(shot: lab4-bucket-policy)
+![bucket policy](shots/lab4-bucket-policy.jpg)
 
 Политика бакета в консоли.
 
@@ -91,19 +91,19 @@ TODO(shot: lab4-bucket-policy)
 
 Включил версионирование (после загрузки первых файлов: у них `Version ID = null`), загрузил `notes.txt` v1, затем v2, дальше по заданию в консоли.
 
-TODO(shot: lab4-versions-null)
+![versions null](shots/lab4-versions-null.jpg)
 
 `Show versions`: у старых файлов `null`, у `notes.txt` две версии.
 
-TODO(shot: lab4-delete-marker)
+![delete marker](shots/lab4-delete-marker.jpg)
 
 После `delete` при `Show versions`: маркер удаления и две версии.
 
-TODO(shot: lab4-restored)
+![restored](shots/lab4-restored.jpg)
 
 Маркер удалён, `notes.txt` вернулся с `v2`.
 
-TODO(shot: lab4-rollback-v1)
+![rollback v1](shots/lab4-rollback-v1.jpg)
 
 Версия `v2` удалена, текущая `v1`.
 
@@ -111,11 +111,11 @@ TODO(shot: lab4-rollback-v1)
 
 ### Задание 5. Жизненный цикл
 
-TODO(shot: lab4-lifecycle-review)
+![lifecycle review](shots/lab4-lifecycle-review.jpg)
 
 `Review transition and expiration actions`.
 
-TODO(shot: lab4-lifecycle-rule)
+![lifecycle rule](shots/lab4-lifecycle-rule.jpg)
 
 Созданное правило `timecapsule-dev-noncurrent`.
 
@@ -123,11 +123,11 @@ TODO(shot: lab4-lifecycle-rule)
 
 ### Задание 6. Подписанные ссылки
 
-TODO(shot: lab4-presign-console-form)
+![presign console form](shots/lab4-presign-console-form.jpg)
 
 Ссылка из консоли на 5 минут для `cat.webp`.
 
-TODO(shot: lab4-presign-console-open)
+![presign console open](shots/lab4-presign-console-open.jpg)
 
 Открыта в приватном окне (подпись закрыта).
 
@@ -168,11 +168,11 @@ TODO(shot: lab4-presign-console-open)
 }
 ```
 
-TODO(shot: lab4-policy-v1)
+![policy v1](shots/lab4-policy-v1.jpg)
 
 Документ политики v1 в консоли и теги (`lab4-policy-tags`).
 
-TODO(shot: lab4-tester-trust)
+![tester trust](shots/lab4-tester-trust.jpg)
 
 Роль `timecapsule-dev-s3-tester`: доверие (аккаунт) и права (только `-app-s3`).
 
@@ -215,7 +215,7 @@ TODO(shot: lab4-tester-trust)
 
 Роль `timecapsule-dev-app-role` (trust `ec2.amazonaws.com`, та же политика, теги) привязал к `app` без перезапуска (instance profile тем же именем).
 
-TODO(shot: lab4-app-role-attached)
+![app role attached](shots/lab4-app-role-attached.jpg)
 
 `Security` у `app`: роль привязана.
 
@@ -237,7 +237,7 @@ TODO(shot: lab4-app-role-attached)
 
 `composer require aws/aws-sdk-php` (на `app` во временной копии, `composer.json` и `composer.lock` закоммичены), `S3_BUCKET` и `AWS_REGION` в `.env.example` и `.env` на сервере, ключей нет. `src/storage.php` переписан: `s3()` с `static`, `storage_save()` (`putObject`, `SourceFile`, `mime_content_type`), `storage_delete()`, `storage_url()` и `storage_stream()` (302 на ссылку 5 минут, `ResponseContentType`, `ResponseContentDisposition`). Права на капсулу проверяются в контроллере до вызова. Подвал: `S3: timecapsule-dev-uploads-ivanbordeniuc`.
 
-TODO(shot: lab4-storage-diff)
+![storage diff](shots/lab4-storage-diff.jpg)
 
 Изменения модуля хранения: https://github.com/srulimoisovich-cloud/timecapsule/commit/9967b50 (разбивка на `storage_url`: `a4bd3d6`).
 
@@ -251,19 +251,19 @@ TODO(shot: lab4-storage-diff)
 
 `./deploy.sh`: `git pull`, `composer install`, `init-db`, `reload php-fpm`, `/health` ok.
 
-TODO(shot: lab4-new-objects)
+![new objects](shots/lab4-new-objects.jpg)
 
-Новые объекты под `uploads/` (картинка и PDF от приложения), `Content-Type` (`lab4-new-pdf-content-type`).
+Новые объекты под `uploads/` (картинка и PDF от приложения), у PDF `Content-Type` application/pdf (ставит приложение при записи).
 
-TODO(shot: lab4-presigned-url)
+![presigned url](shots/lab4-presigned-url.jpg)
 
 Адресная строка картинки: `...s3.eu-central-1.amazonaws.com/uploads/...?X-Amz-...` (подпись обрезана).
 
-TODO(shot: lab4-capsule-pdf)
+![capsule pdf](shots/lab4-capsule-pdf.jpg)
 
 PDF скачан под исходным именем.
 
-TODO(shot: lab4-link-expired)
+(кадр срока ссылки: см. рисунок ниже, `lab4-link-expiry`; XML-страницу S3 Chrome не снимает)
 
 Та же ссылка через 5 минут: `Request has expired`.
 
@@ -279,7 +279,7 @@ TODO(shot: lab4-link-expired)
 
 Вложение капсулы из ЛР2 (id 1) уходит по подписанной ссылке на S3.
 
-TODO(shot: lab4-deleted-marker)
+![deleted marker](shots/lab4-deleted-marker.jpg)
 
 После удаления капсулы с вложением: объект с маркером (`Show versions`).
 
@@ -291,11 +291,11 @@ TODO(shot: lab4-deleted-marker)
 
 `storage/uploads` перенесён и удалён, приложение (`/health`, подвал, ссылки на старое и новое вложение) работает; после политики v2 (без `ListBucket`) `ls uploads/` на сервере даёт `AccessDenied`, ссылки на вложения по-прежнему работают.
 
-TODO(shot: lab4-policy-versions)
+![policy versions](shots/lab4-policy-versions.jpg)
 
 `Policy versions`: v2 по умолчанию, v1.
 
-TODO(shot: lab4-stateless-app)
+![stateless app](shots/lab4-stateless-app.jpg)
 
 Приложение с вложениями после удаления `storage/uploads` и новая капсула с вложением.
 
@@ -303,7 +303,7 @@ TODO(shot: lab4-stateless-app)
 
 Ноутбук: ответ `404 Not Found`.
 
-TODO(shot: lab4-cloudshell-404)
+![cloudshell 404](shots/lab4-cloudshell-404.jpg)
 
 (необязательно) то же в CloudShell.
 
