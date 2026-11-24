@@ -41,9 +41,8 @@ function storage_delete(?string $storedName): void
     s3()->deleteObject(['Bucket' => s3_bucket(), 'Key' => 'uploads/' . basename($storedName)]);
 }
 
-// Вместо отдачи файла: 302 на подписанную ссылку. Права на капсулу проверил вызывающий код.
-// $disposition: "inline" (показать) или "attachment" (скачать).
-function storage_stream(string $storedName, string $mime, string $downloadName, string $disposition): void
+// Подписанная ссылка на объект. $disposition: "inline" (показать) или "attachment" (скачать).
+function storage_url(string $storedName, string $mime, string $downloadName, string $disposition): string
 {
     $ascii = preg_replace('/[^A-Za-z0-9._ -]/', '_', $downloadName);
 
@@ -55,8 +54,12 @@ function storage_stream(string $storedName, string $mime, string $downloadName, 
             '%s; filename="%s"; filename*=UTF-8\'\'%s', $disposition, $ascii, rawurlencode($downloadName)
         ),
     ]);
-    $url = (string) s3()->createPresignedRequest($cmd, '+' . STORAGE_LINK_TTL . ' seconds')->getUri();
+    return (string) s3()->createPresignedRequest($cmd, '+' . STORAGE_LINK_TTL . ' seconds')->getUri();
+}
 
-    header('Location: ' . $url, true, 302);
+// Вместо отдачи файла: 302 на подписанную ссылку. Права на капсулу проверил вызывающий код.
+function storage_stream(string $storedName, string $mime, string $downloadName, string $disposition): void
+{
+    header('Location: ' . storage_url($storedName, $mime, $downloadName, $disposition), true, 302);
     header('Cache-Control: no-store');
 }
