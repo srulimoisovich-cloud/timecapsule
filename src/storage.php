@@ -1,35 +1,36 @@
 <?php
-// File storage for capsule attachments.
-//
-// This is the only file that reads or writes uploaded files. They are kept on the local
-// disk, in UPLOAD_DIR. The rest of the app only uses the three functions
-// storage_save(), storage_delete() and storage_stream().
+// Вложения капсул лежат в S3: uploads/<случайное имя>. Остальное приложение знает только
+// три функции: storage_save(), storage_delete(), storage_stream().
+// Учётные данные SDK берёт сам: роль сервера timecapsule-dev-app-role (ключей в .env нет).
 
-// Absolute path of the upload folder. A relative UPLOAD_DIR is relative to the project root.
-function upload_dir(): string
+const STORAGE_LINK_TTL = 300; // секунд: ссылка на скачивание живёт 5 минут
+
+function s3(): Aws\S3\S3Client
 {
-    $dir = config('UPLOAD_DIR', 'storage/uploads');
-    // Absolute paths look like "/var/uploads" (Linux, macOS) or "C:\uploads" (Windows).
-    if (!preg_match('#^([A-Za-z]:)?[\\\\/]#', $dir)) {
-        $dir = ROOT_DIR . '/' . $dir;
-    }
-
-    if (!is_dir($dir)) {
-        mkdir($dir, 0775, true);
-    }
-    return rtrim($dir, '/\\');
+    static $client = null;
+    return $client ??= new Aws\S3\S3Client([
+        'version' => 'latest',
+        'region'  => config('AWS_REGION', 'eu-central-1'),
+    ]);
 }
 
-// Save an uploaded file ($_FILES['...'] entry) and return its stored name, e.g. "3f9a...e1.png".
-// The name is random, so users cannot guess other people's file names.
+function s3_bucket(): string
+{
+    return config('S3_BUCKET');
+}
+
+// Кладёт файл из $_FILES в бакет, возвращает случайное имя (оно же хвост ключа).
 function storage_save(array $uploadedFile, string $extension): string
 {
-    $storedName = bin2hex(random_bytes(16)) . '.' . $extension;
+    $name = bin2hex(random_bytes(12)) . '.' . $extension;
 
-    if (!move_uploaded_file($uploadedFile['tmp_name'], upload_dir() . '/' . $storedName)) {
-        throw new RuntimeException('Could not save the uploaded file.');
-    }
-    return $storedName;
+    s3()->putObject([
+        'Bucket'      => s3_bucket(),
+        'Key'         => 'uploads/' . $name,
+        'SourceFile'  => $uploadedFile['tmp_name'],
+        'ContentType' => mime_content_type($uploadedFile['tmp_name']),
+    ]);
+    return $name;
 }
 
 function storage_delete(?string $storedName): void
@@ -37,35 +38,25 @@ function storage_delete(?string $storedName): void
     if ($storedName === null || $storedName === '') {
         return;
     }
-
-    // basename() makes sure we never delete something outside the upload folder.
-    $path = upload_dir() . '/' . basename($storedName);
-    if (is_file($path)) {
-        unlink($path);
-    }
+    s3()->deleteObject(['Bucket' => s3_bucket(), 'Key' => 'uploads/' . basename($storedName)]);
 }
 
-// Send a stored file to the browser.
-// $disposition: "inline" (show in the browser) or "attachment" (download).
+// Вместо отдачи файла: 302 на подписанную ссылку. Права на капсулу проверил вызывающий код.
+// $disposition: "inline" (показать) или "attachment" (скачать).
 function storage_stream(string $storedName, string $mime, string $downloadName, string $disposition): void
 {
-    $path = upload_dir() . '/' . basename($storedName);
-    if (!is_file($path)) {
-        abort(404);
-    }
+    $ascii = preg_replace('/[^A-Za-z0-9._ -]/', '_', $downloadName);
 
-    // Keep only safe characters for the plain filename; the UTF-8 name goes in filename*.
-    $asciiName = preg_replace('/[^A-Za-z0-9._ -]/', '_', $downloadName);
+    $cmd = s3()->getCommand('GetObject', [
+        'Bucket'                     => s3_bucket(),
+        'Key'                        => 'uploads/' . basename($storedName),
+        'ResponseContentType'        => $mime,
+        'ResponseContentDisposition' => sprintf(
+            '%s; filename="%s"; filename*=UTF-8\'\'%s', $disposition, $ascii, rawurlencode($downloadName)
+        ),
+    ]);
+    $url = (string) s3()->createPresignedRequest($cmd, '+' . STORAGE_LINK_TTL . ' seconds')->getUri();
 
-    header('Content-Type: ' . $mime);
-    header('Content-Length: ' . filesize($path));
-    header(sprintf(
-        'Content-Disposition: %s; filename="%s"; filename*=UTF-8\'\'%s',
-        $disposition,
-        $asciiName,
-        rawurlencode($downloadName)
-    ));
-    header('X-Content-Type-Options: nosniff');
-
-    readfile($path);
+    header('Location: ' . $url, true, 302);
+    header('Cache-Control: no-store');
 }
